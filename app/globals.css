@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #08090b;
+  --color-ink-900: #0d0f12;
+  --color-ink-850: #121417;
+  --color-ink-800: #171a1f;
+  --color-ink-750: #1d2126;
+  --color-ink-700: #24282f;
+  --color-ink-600: #333941;
+  --color-ink-500: #4a525c;
+  --color-ink-400: #6b7480;
+  --color-ink-300: #8d95a0;
+  --color-ink-200: #b6bcc4;
+  --color-ink-100: #dde0e4;
+  --color-ink-50: #f4f5f7;
+
+  /* Blade — the single accent. Everything else stays neutral so the accent
+     always means "this is the thing you act on". */
+  --color-blade-600: #d94e14;
+  --color-blade-500: #f2620f;
+  --color-blade-400: #ff7a2f;
+  --color-blade-300: #ff9557;
+  --color-blade-200: #ffb98d;
+
+  /* Track identity colours. Muted on purpose — the timeline should read as one
+     surface, not a fruit salad. */
+  --color-track-video: #4a7fd4;
+  --color-track-audio: #3fa88a;
+  --color-track-text: #a273d6;
+  --color-track-overlay: #d4a03f;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+
+  --radius-panel: 12px;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+:root {
+  color-scheme: dark;
+  --bg: var(--color-ink-950);
+  --surface: var(--color-ink-900);
+  --surface-raised: var(--color-ink-850);
+  --line: var(--color-ink-700);
+  --text: var(--color-ink-50);
+  --text-muted: var(--color-ink-300);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  /* The editor owns its own scrolling regions. */
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--color-blade-500);
+  color: white;
+}
+
+/* Scrollbars, tuned to disappear into the panels. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-700);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-600);
+  background-clip: content-box;
+}
+
+/* Focus ring: visible for keyboards, invisible for mice. */
+:focus-visible {
+  outline: 2px solid var(--color-blade-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: var(--color-ink-700);
+  border-radius: 99px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-ink-100);
+  cursor: grab;
+  border: none;
+  transition: transform 120ms var(--ease-out-quint), background 120ms;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: white;
+  transform: scale(1.15);
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  background: var(--color-blade-400);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-ink-100);
+  border: none;
+  cursor: grab;
+}
+
+@utility panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+@utility grain {
+  position: relative;
+}
+
+/* Subtle film grain over hero surfaces — keeps large flat areas from looking
+   like a flat colour swatch. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-rise {
+  animation: rise 620ms var(--ease-out-quint) both;
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: sweep 2.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
