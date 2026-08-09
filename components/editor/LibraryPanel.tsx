@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { uid, useEditor } from "@/lib/store";
 import { probeFile, formatTime } from "@/lib/media";
+import { saveAssetBlob } from "@/lib/persist";
 import { FILTER_GROUPS, FILTER_PRESETS } from "@/lib/filters";
 import { TRANSITIONS } from "@/lib/transitions";
 import { ENTER_ANIMATIONS } from "@/lib/animations";
@@ -101,7 +102,10 @@ function MediaTab() {
       setBusy(true);
       for (const file of Array.from(files)) {
         const asset = await probeFile(file);
-        if (asset) addAsset(asset);
+        if (!asset) continue;
+        addAsset(asset);
+        // Keep the bytes so the project survives a tab close.
+        void saveAssetBlob(asset.id, file);
       }
       setBusy(false);
     },

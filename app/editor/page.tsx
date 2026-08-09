@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Download, Keyboard, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
@@ -11,6 +11,7 @@ import { Inspector } from "@/components/editor/Inspector";
 import { ExportDialog } from "@/components/editor/ExportDialog";
 import { useEditor } from "@/lib/store";
 import { probeFile } from "@/lib/media";
+import { clearProject, loadProject, saveAssetBlob, saveProject } from "@/lib/persist";
 
 const SHORTCUTS: [string, string][] = [
   ["Space", "Play or pause"],
@@ -31,9 +32,56 @@ export default function EditorPage() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [dropping, setDropping] = useState(false);
 
+  const [restore, setRestore] = useState<{ savedAt: number; clips: number } | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const pendingRestore = useRef<Awaited<ReturnType<typeof loadProject>>>(null);
+
   const projectName = useEditor((s) => s.settings.name);
   const clipCount = useEditor((s) => s.clips.length);
   const addAsset = useEditor((s) => s.addAsset);
+
+  // Offer the last autosave rather than restoring over a fresh session silently.
+  useEffect(() => {
+    let cancelled = false;
+    void loadProject().then((saved) => {
+      if (cancelled || !saved) return;
+      if (useEditor.getState().clips.length > 0) return;
+      pendingRestore.current = saved;
+      setRestore({ savedAt: saved.savedAt, clips: saved.clips.length });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced autosave. Subscribing to the store directly keeps this off the
+  // React render path, so typing in the inspector stays responsive.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    let settled: ReturnType<typeof setTimeout>;
+    const unsub = useEditor.subscribe((s) => {
+      if (!s.clips.length) return;
+      clearTimeout(timer);
+      clearTimeout(settled);
+      setSaveState("saving");
+      timer = setTimeout(() => {
+        void saveProject({
+          settings: s.settings,
+          tracks: s.tracks,
+          clips: s.clips,
+          assets: s.assets,
+        }).then(() => {
+          setSaveState("saved");
+          settled = setTimeout(() => setSaveState("idle"), 2200);
+        });
+      }, 1200);
+    });
+    return () => {
+      unsub();
+      clearTimeout(timer);
+      clearTimeout(settled);
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -122,7 +170,9 @@ export default function EditorPage() {
       setDropping(false);
       for (const file of Array.from(e.dataTransfer.files)) {
         const asset = await probeFile(file);
-        if (asset) addAsset(asset);
+        if (!asset) continue;
+        addAsset(asset);
+        void saveAssetBlob(asset.id, file);
       }
     };
     window.addEventListener("dragover", over);
@@ -149,6 +199,11 @@ export default function EditorPage() {
           <span className="ml-2 text-ink-600">
             {clipCount} {clipCount === 1 ? "clip" : "clips"}
           </span>
+          {saveState !== "idle" && (
+            <span className="ml-2 text-[11px] text-ink-500">
+              {saveState === "saving" ? "Saving…" : "Saved"}
+            </span>
+          )}
         </span>
 
         <button
@@ -221,6 +276,38 @@ export default function EditorPage() {
                 </div>
               ))}
             </dl>
+          </div>
+        </div>
+      )}
+
+      {restore && (
+        <div className="fixed bottom-4 left-1/2 z-50 w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-ink-700 bg-ink-900 p-4 shadow-2xl">
+          <p className="text-[13px] font-medium text-ink-50">Pick up where you left off?</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-ink-400">
+            An edit with {restore.clips} {restore.clips === 1 ? "clip" : "clips"} was saved on this
+            device {new Date(restore.savedAt).toLocaleString()}. The media was stored alongside it.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => {
+                const data = pendingRestore.current;
+                if (data) useEditor.getState().hydrate(data);
+                setRestore(null);
+              }}
+              className="flex-1 rounded-lg bg-blade-500 py-2 text-[12px] font-semibold text-white transition hover:bg-blade-400"
+            >
+              Restore it
+            </button>
+            <button
+              onClick={() => {
+                void clearProject();
+                pendingRestore.current = null;
+                setRestore(null);
+              }}
+              className="rounded-lg border border-ink-700 px-3 py-2 text-[12px] text-ink-300 transition hover:border-ink-600 hover:text-ink-100"
+            >
+              Start fresh
+            </button>
           </div>
         </div>
       )}

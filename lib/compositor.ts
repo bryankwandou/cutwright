@@ -161,7 +161,10 @@ function paintClip(
   const preset = findPreset(clip.lut);
 
   ctx.save();
-  ctx.globalAlpha = opacity;
+  // Multiply rather than assign: a transition may already have dimmed the
+  // context before handing it to us, and overwriting would cancel the blend.
+  const inherited = ctx.globalAlpha;
+  ctx.globalAlpha = inherited * opacity;
 
   // A wipe-reveal masks the clip before any transform is applied.
   if (anim.wipe < 1) {
@@ -193,11 +196,11 @@ function paintClip(
       ctx.filter = "none";
       if (preset?.tint) {
         ctx.globalCompositeOperation = preset.tint.blend;
-        ctx.globalAlpha = opacity * preset.tint.alpha;
+        ctx.globalAlpha = inherited * opacity * preset.tint.alpha;
         ctx.fillStyle = preset.tint.color;
         ctx.fillRect(-W / 2, -H / 2, W, H);
         ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = opacity;
+        ctx.globalAlpha = inherited * opacity;
       }
       applyVignette(ctx, W, H, grade.vignette);
       ctx.restore();

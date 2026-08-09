@@ -69,6 +69,13 @@ interface EditorState extends Snapshot {
   toggleSnap: () => void;
   updateSettings: (patch: Partial<ProjectSettings>) => void;
   reset: () => void;
+  /** Replaces the whole document, e.g. when restoring an autosave. */
+  hydrate: (data: {
+    settings: ProjectSettings;
+    tracks: Track[];
+    clips: Clip[];
+    assets: MediaAsset[];
+  }) => void;
 }
 
 const snapshot = (s: Snapshot): Snapshot =>
@@ -340,6 +347,20 @@ export const useEditor = create<EditorState>((set, get) => ({
       clips: [],
       settings: baseSettings(),
       playhead: 0,
+      selectedClipId: null,
+      past: [],
+      future: [],
+    }),
+
+  hydrate: (data) =>
+    set({
+      settings: data.settings,
+      // A saved file from an older build may be missing tracks a clip refers to.
+      tracks: data.tracks?.length ? data.tracks : baseTracks(),
+      clips: data.clips ?? [],
+      assets: data.assets ?? [],
+      playhead: 0,
+      playing: false,
       selectedClipId: null,
       past: [],
       future: [],

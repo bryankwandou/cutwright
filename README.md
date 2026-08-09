@@ -54,6 +54,10 @@ decaying shake, and a spring-backed pop.
 audio bed mixed through an `OfflineAudioContext` so per-clip volume, speed, and fades
 land in the file.
 
+**Autosave** — the edit and the media behind it are written to IndexedDB as you work.
+Close the tab, come back, and you are offered the project you left. Object URLs are
+reissued from the stored blobs, so restored clips still play.
+
 ## What does not work yet
 
 Kept separate from the list above on purpose.
@@ -62,7 +66,7 @@ Kept separate from the list above on purpose.
 - Keyframes between arbitrary points — animation is entrance/exit only
 - Audio waveforms drawn from real peaks; the timeline currently shows a placeholder
 - Chroma key and background removal — the state model is wired, the shader is not
-- Project save/load; closing the tab loses the edit
+- Exporting a project file you can move between machines; autosave is per-device
 - The Android wrapper
 
 ## How it fits together
